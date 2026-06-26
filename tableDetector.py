@@ -35,8 +35,6 @@ class TableDetector:
                     rows.append((x1, y1, x2, y2))
                 elif class_name == "table column":
                     cols.append((x1, y1, x2, y2))
-                elif class_name == "table spanning cell":
-                    spanning_cells.append((x1, y1, x2, y2))
 
         # Sort spatially
         rows.sort(key=lambda r: r[1])  # Top to bottom
@@ -49,8 +47,8 @@ class TableDetector:
             cells.append(sp_box)
 
         # 2. Calculate intersections for standard grid cells
-        for rx1, ry1, rx2, ry2 in rows:
-            for cx1, cy1, cx2, cy2 in cols:
+        for r_idx, (rx1, ry1, rx2, ry2) in enumerate(rows):
+            for c_idx, (cx1, cy1, cx2, cy2) in enumerate(cols):
                 # Find the overlapping rectangle between row and column
                 ix1 = max(rx1, cx1)
                 iy1 = max(ry1, cy1)
@@ -60,17 +58,10 @@ class TableDetector:
                 # If a valid intersection exists (width and height > 0)
                 if ix1 < ix2 and iy1 < iy2:
                     
-                    # Prevent double-counting: Check if this intersection is inside a spanning cell
-                    is_spanning_overlap = False
-                    for sx1, sy1, sx2, sy2 in spanning_cells:
-                        # Use the center point of the intersection to check if it falls inside a spanning cell
-                        center_x, center_y = (ix1 + ix2) / 2, (iy1 + iy2) / 2
-                        if sx1 <= center_x <= sx2 and sy1 <= center_y <= sy2:
-                            is_spanning_overlap = True
-                            break
-                    
-                    # If it's a normal cell, add it to our list
-                    if not is_spanning_overlap:
-                        cells.append((ix1, iy1, ix2, iy2))
+                   cells.append({
+                       "row": r_idx,
+                       "col": c_idx,
+                       "box": (ix1, iy1, ix2, iy2)
+                   })
 
         return cells, img
