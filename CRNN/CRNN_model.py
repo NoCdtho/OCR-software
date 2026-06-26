@@ -1,54 +1,38 @@
 import torch.nn as nn
-from CNN_model import OCRFeatureExtractor
+from CRNN.residualBlock import ResidualBlock
+import torch.nn.functional as F
 
 class CRNN(nn.Module):
-    def __init__(self, input_channels=1, hidden_size=256, num_layers=2, num_classes=37):
-        super(CRNN, self).__init__()
-
-        #CNN Stage
-        self.cnn = OCRFeatureExtractor(input_channels)
-
-        #join CNN with LSTM by collapse height dimension
-        # CNN output: (batch, 512, 2, 64) (batch, number of channel, height, width)
-        # After collapsing height: (batch, 64, 1024)  ← 512*2 = 1024 features per time step
-        self.lstm_input_size = 512 * 2  # channels × height
-
-        #LSTM Stage
-        self.lstm = nn.LSTM(
-            input_size=self.lstm_input_size,  # features per time step = one timestep = 1024 number of patterns 
-            hidden_size=hidden_size,          # 256
-            num_layers=num_layers,            # stacked LSTMs
-            batch_first=True,                 # (batch, timesteps, features)
-            bidirectional=True,               # reads text left→right AND right → left
-            dropout=0.2                       # dropout between LSTM layers
+    def __init__(self, num_classes, img_height=32):
+        super().__init__()
+        self.cnn = nn.Sequential(
+            # initial conv
+            nn.Conv2d(1, 64, 3, padding=1, bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            # residual blocks with pooling (only vertical stride)
+            ResidualBlock(64, 64),
+            nn.MaxPool2d((2, 1)),   # H/2
+            ResidualBlock(64, 128),
+            nn.MaxPool2d((2, 1)),   # H/4
+            ResidualBlock(128, 256),
+            ResidualBlock(256, 256),
+            nn.MaxPool2d((2, 1)),   # H/8
+            ResidualBlock(256, 512),
+            nn.MaxPool2d((2, 1)),   # H/16
+            ResidualBlock(512, 512),
+            nn.MaxPool2d((2, 1)),   # H/32 → height = 1
         )
-
-        # Output: map LSTM output to character classes
-        # bidirectional → hidden_size * 2
-        """
-        It will convert the 256*2=512 numbers in the vector into 36 numbers in the vector mapping the num_clases
-        that is the outputs where each number represent the character prediction by the model.
-        """
-        self.fc = nn.Linear(hidden_size * 2, num_classes)
+        # Recurrent part
+        self.rnn = nn.LSTM(512, 256, num_layers=2,
+                           bidirectional=True, batch_first=True)
+        self.fc = nn.Linear(512, num_classes)  # 256*2
 
     def forward(self, x):
-        # Step 1: CNN feature extraction
-        x = self.cnn(x)
-        # x shape: (batch, 512, 2, 64) (batch, channel, height, width)
-
-        # Step 2: Reshape for LSTM
-        batch, channels, height, width = x.size()
-        x = x.permute(0, 3, 1, 2) # →(batch, width, channels, height) change position here
-        x = x.reshape(batch, width, channels * height) # can do operations here between 
-        # x shape: (batch, 64, 1024)  ← 64 time steps, 1024 features each
-
-        # Step 3: LSTM sequence modeling (sequence, timesteps, features)
-        x, _ = self.lstm(x) 
-        # x shape: (batch, 64, 512)  ← 512 = 256 * 2 (bidirectional)
-
-        # Step 4: Project to character classes at each time step
-        x = self.fc(x)
-        # x shape: (batch, 64, num_classes)
-
-        return x
-    
+        # x: (B, 1, H, W)
+        feats = self.cnn(x)                    # (B, 512, 1, W')
+        feats = feats.squeeze(2)               # (B, 512, W')
+        feats = feats.permute(0, 2, 1)         # (B, W', 512) batch_first
+        rnn_out, _ = self.rnn(feats)           # (B, W', 512)
+        logits = self.fc(rnn_out)              # (B, W', num_classes)
+        return F.log_softmax(logits, dim=2)
