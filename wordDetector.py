@@ -21,14 +21,13 @@ def load_crnn_model(weights_path):
     model.eval()
     return model
 
-def preprocess_image(image_path: str) -> torch.Tensor:
+def preprocess_image(crop_img: np.ndarray) -> torch.Tensor:
     """Loads an image, converts to grayscale, resizes, and turns into a tensor."""
-    img = cv2.imread(image_path)
-    if img is None:
-        raise FileNotFoundError(f"Could not load image: {image_path}")
+    if crop_img.size == 0:
+        return torch.zeros((1, TARGET_HEIGHT, 1))
 
     # Convert BGR to grayscale PIL Image
-    pil_img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2GRAY))
+    pil_img = Image.fromarray(cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY))
     w, h = pil_img.size
 
     # Resize keeping aspect ratio based on TARGET_HEIGHT
@@ -39,10 +38,10 @@ def preprocess_image(image_path: str) -> torch.Tensor:
         new_w = TARGET_HEIGHT
     
     new_w = min(new_w, MAX_WIDTH)
-
     pil_img = pil_img.resize((new_w, new_h), Image.Resampling.BILINEAR)
-    
-    return F.to_tensor(pil_img)
+    img_tensor = F.to_tensor(pil_img)
+    img_tensor = F.normalize(img_tensor, mean=[0.5], std=[0.5])
+    return img_tensor
 
 def batch_ocr(model, crops: list, batch_size=32):
     """Runs OCR on a list of numpy image crops in batches."""
@@ -55,7 +54,7 @@ def batch_ocr(model, crops: list, batch_size=32):
         max_w = max(t.shape[2] for t in tensors)
         
         # Pad to max width in this batch
-        padded = torch.zeros(len(tensors), 1, TARGET_HEIGHT, max_w)
+        padded = torch.ones(len(tensors), 1, TARGET_HEIGHT, max_w)
         for j, t in enumerate(tensors):
             _, h, w = t.shape
             padded[j, :, :h, :w] = t
@@ -67,7 +66,13 @@ def batch_ocr(model, crops: list, batch_size=32):
             
         # FIXED CTC DECODING 
         _, max_indices = log_probs.max(dim=2)
-        max_indices = max_indices.permute(1, 0).cpu().numpy()
+
+        # check if CRNN is predicting in batch-first or time-first manner
+        if max_indices.shape[0] == len(batch_crops):
+            max_indices = max_indices.cpu().numpy()
+        else:
+            max_indices = max_indices.permute(1, 0).cpu().numpy() 
+
         T = max_indices.shape[1] # Actual sequence length!
         
         for b in range(max_indices.shape[0]):
