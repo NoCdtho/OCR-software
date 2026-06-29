@@ -1,5 +1,5 @@
 import torch.nn as nn
-from CRNN.residualBlock import ResidualBlock
+from inferencePipeline.CRNN.residualBlock import ResidualBlock
 import torch.nn.functional as F
 
 class CRNN(nn.Module):

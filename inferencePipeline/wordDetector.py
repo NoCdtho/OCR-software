@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from PIL import Image
 from torchvision.transforms import functional as F
-from CRNN.CRNN_model import CRNN 
+from inferencePipeline.CRNN.CRNN_model import CRNN 
 
 # --- CONFIGURATION ---
 TARGET_HEIGHT = 32
