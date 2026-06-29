@@ -1,7 +1,7 @@
 # main.py
 import cv2
 import argparse
-from tableDetector import TableDetector
+from inferencePipeline.tableDetector import TableDetector
 
 def main():
     # Setup terminal arguments

@@ -1,7 +1,7 @@
 import argparse
 import pandas as pd
-from tableDetector import TableDetector
-from wordDetector import load_crnn_model, batch_ocr
+from inferencePipeline.tableDetector import TableDetector
+from inferencePipeline.wordDetector import load_crnn_model, batch_ocr
 
 def pipeline(image_path, yolo_weights, crnn_weights, output_csv):
     print("1. Loading Models...")

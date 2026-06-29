@@ -27,7 +27,7 @@ def preprocess_image(crop_img: np.ndarray) -> torch.Tensor:
         return torch.zeros((1, TARGET_HEIGHT, 1))
 
     # Convert BGR to grayscale PIL Image
-    pil_img = Image.fromarray(cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY))
+    pil_img = Image.fromarray(cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY | cv2.THRESH_OTSU))
     w, h = pil_img.size
 
     # Resize keeping aspect ratio based on TARGET_HEIGHT
