@@ -1,4 +1,3 @@
-# table_detector.py
 import cv2
 from ultralytics import YOLO
 
@@ -18,6 +17,9 @@ class TableDetector:
         if img is None:
             raise FileNotFoundError(f"Image not found: {image_path}")
 
+        # Create a copy of the image to draw bounding boxes on
+        annotated_img = img.copy()
+
         # Run inference
         results = self.model(img, conf=conf, iou=iou)
         rows, cols, spanning_cells = [], [], []
@@ -35,6 +37,9 @@ class TableDetector:
                     rows.append((x1, y1, x2, y2))
                 elif class_name == "table column":
                     cols.append((x1, y1, x2, y2))
+                elif class_name == "table spanning cell":
+                    #  extract the spanning cells
+                    spanning_cells.append((x1, y1, x2, y2))
 
         # Sort spatially
         rows.sort(key=lambda r: r[1])  # Top to bottom
@@ -42,11 +47,20 @@ class TableDetector:
 
         cells = []
 
-        # 1. Add spanning cells directly to the cell list
+        # 1. Add spanning cells and draw them (Blue)
         for sp_box in spanning_cells:
-            cells.append(sp_box)
+            cells.append({
+                "row": None, # Spanning cells span multiple, so tracking needs custom logic
+                "col": None,
+                "box": sp_box,
+                "type": "spanning"
+            })
+            
+            # Draw blue bounding box for spanning cells: (B, G, R) -> (255, 0, 0)
+            sx1, sy1, sx2, sy2 = sp_box
+            cv2.rectangle(annotated_img, (sx1, sy1), (sx2, sy2), (255, 0, 0), 2)
 
-        # 2. Calculate intersections for standard grid cells
+        # 2. Calculate intersections for standard grid cells and draw them (Green)
         for r_idx, (rx1, ry1, rx2, ry2) in enumerate(rows):
             for c_idx, (cx1, cy1, cx2, cy2) in enumerate(cols):
                 # Find the overlapping rectangle between row and column
@@ -57,11 +71,30 @@ class TableDetector:
                 
                 # If a valid intersection exists (width and height > 0)
                 if ix1 < ix2 and iy1 < iy2:
+                    cells.append({
+                        "row": r_idx,
+                        "col": c_idx,
+                        "box": (ix1, iy1, ix2, iy2),
+                        "type": "standard"
+                    })
                     
-                   cells.append({
-                       "row": r_idx,
-                       "col": c_idx,
-                       "box": (ix1, iy1, ix2, iy2)
-                   })
+                    # Draw green bounding box for standard cells: (B, G, R) -> (0, 255, 0)
+                    cv2.rectangle(annotated_img, (ix1, iy1), (ix2, iy2), (0, 255, 0), 2)
 
-        return cells, img
+        # Return the extracted cell data and the newly annotated image
+        return cells, annotated_img
+    
+if __name__ == "__main__":
+    WEIGHTS_PATH = "E:/PROJECTS/OCR/Server/TrainedModelsWeights/Yolomodel.pt"
+    IMAGE_PATH = "E:/PROJECTS/OCR/TestImage/TableImages/t7.webp"
+    OUTPUT_PATH = "annoted_result.jpg"
+
+    print("Loading models.....")
+    detector = TableDetector(weights_path=WEIGHTS_PATH)
+
+    print("Scanning image.....")
+    cells, annoted_img = detector.get_cells(image_path=IMAGE_PATH)
+
+    cv2.imwrite(OUTPUT_PATH, annoted_img)
+    print(f"Success found the number of cells are: {len(cells)}")
+    print(f"Saved the annotated image to: {OUTPUT_PATH}")
