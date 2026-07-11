@@ -7,3 +7,4 @@ debug_yolo_boxes.jpg
 output_table.csv
 OutputFromModels/
 extracted_table_cells
+__pycache__
