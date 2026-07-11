@@ -27,7 +27,7 @@ def preprocess_image(crop_img: np.ndarray) -> torch.Tensor:
         return torch.zeros((1, TARGET_HEIGHT, 1))
 
     # Convert BGR to grayscale PIL Image
-    pil_img = Image.fromarray(cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY | cv2.THRESH_OTSU))
+    pil_img = Image.fromarray(cv2.cvtColor(crop_img, cv2.COLOR_BGR2GRAY))
     w, h = pil_img.size
 
     # Resize keeping aspect ratio based on TARGET_HEIGHT
@@ -38,9 +38,10 @@ def preprocess_image(crop_img: np.ndarray) -> torch.Tensor:
         new_w = TARGET_HEIGHT
     
     new_w = min(new_w, MAX_WIDTH)
-    pil_img = pil_img.resize((new_w, new_h), Image.Resampling.BILINEAR)
+    # matching the training interpolation
+    pil_img = pil_img.resize((new_w, new_h), Image.Resampling.BICUBIC)
+    # matcching training range [0, 1]
     img_tensor = F.to_tensor(pil_img)
-    img_tensor = F.normalize(img_tensor, mean=[0.5], std=[0.5])
     return img_tensor
 
 def batch_ocr(model, crops: list, batch_size=32):
@@ -54,7 +55,7 @@ def batch_ocr(model, crops: list, batch_size=32):
         max_w = max(t.shape[2] for t in tensors)
         
         # Pad to max width in this batch
-        padded = torch.ones(len(tensors), 1, TARGET_HEIGHT, max_w)
+        padded = torch.zeros(len(tensors), 1, TARGET_HEIGHT, max_w)
         for j, t in enumerate(tensors):
             _, h, w = t.shape
             padded[j, :, :h, :w] = t
