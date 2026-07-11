@@ -1,1 +1,9 @@
 venv/
+inferencePipeline/extracted_table_cells
+inferencePipeline/annoted_result.jpg
+inferencePipeline/__pycache__
+TrainedModelsWeights/
+debug_yolo_boxes.jpg
+output_table.csv
+OutputFromModels/
+extracted_table_cells

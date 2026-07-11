@@ -1,12 +1,13 @@
 import cv2
 import os
-from tableDetector import TableDetector
+from inferencePipeline.tableDetector import TableDetector
 
-def crop_and_save_cells(img, cells, output_dir="cropped_cells"):
-    """
+"""
     Takes the original image and the list of detected cells,
     crops them, and saves them to an output directory.
-    """
+"""
+def crop_and_save_cells(img, cells, output_dir="cropped_cells"):
+
     # Create the folder if it doesn't exist
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -32,7 +33,7 @@ def crop_and_save_cells(img, cells, output_dir="cropped_cells"):
         # 3. Generate a meaningful filename
         if cell.get("type") == "standard":
             # e.g., "cell_r0_c2.jpg" for Row 0, Column 2
-            filename = f"cell_r{cell['row']}_c{cell['col']}.jpg"
+            filename = f"cell_row{cell['row']}_column{cell['col']}.jpg"
         else:
             # For spanning cells where row/col isn't easily defined
             filename = f"spanning_cell_{i}.jpg"
@@ -54,8 +55,8 @@ def crop_and_save_cells(img, cells, output_dir="cropped_cells"):
 
 def main():
     # File paths
-    WEIGHTS_PATH = "E:/PROJECTS/OCR/Server/TrainedModelsWeights/yoloPubtables.pt" 
-    IMAGE_PATH = "E:/PROJECTS/OCR/TestImage/TableImages/t10.jpg"
+    WEIGHTS_PATH = "E:/PROJECTS/OCRSoftware/Server/TrainedModelsWeights/yoloPubtables_1M.pt"
+    IMAGE_PATH = "E:/PROJECTS/OCRSoftware/TestImage/TableImages/t10.jpg"
     OUTPUT_FOLDER = "extracted_table_cells"
 
     # Initialize the detector

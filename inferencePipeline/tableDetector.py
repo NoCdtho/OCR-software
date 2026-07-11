@@ -86,7 +86,7 @@ class TableDetector:
     
 if __name__ == "__main__":
     WEIGHTS_PATH = "E:/PROJECTS/OCR/Server/TrainedModelsWeights/Yolomodel.pt"
-    IMAGE_PATH = "E:/PROJECTS/OCR/TestImage/TableImages/t7.webp"
+    IMAGE_PATH = "E:/PROJECTS/OCR/TestImage/TableImages/t9.webp"
     OUTPUT_PATH = "annoted_result.jpg"
 
     print("Loading models.....")
