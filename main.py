@@ -1,13 +1,15 @@
 import argparse
 import pandas as pd
 from inferencePipeline.tableDetector import TableDetector
-from inferencePipeline.wordDetector import load_crnn_model, batch_ocr
+from inferencePipeline.wordDetector import load_crnn_model, batch_ocr, predict_single_word
 from inferencePipeline.cropImages import crop_and_save_cells
 
 def pipeline(image_path, yolo_weights, crnn_weights, output_csv):
     print("1. Loading Models...")
     detector = TableDetector(yolo_weights)
     crnn_model = load_crnn_model(crnn_weights)
+
+# detecting the cells are present or not in the input image 
 
     print(f"2. Detecting Table Layout in '{image_path}'...")
     cells, img = detector.get_cells(image_path)
@@ -23,6 +25,8 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv):
             'box': (0, 0, img_width, img_height)
         }]
 
+# Cropping the cells that are found
+
     print(f"3. Cropping {len(cells)} cells and running CRNN OCR...")
     saved_crops_data = crop_and_save_cells(img, cells, output_dir="extracted_table_cells")
 
@@ -30,7 +34,13 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv):
     crops = [item["image_matrix"] for item in saved_crops_data]
 
     print("Running the CRNN OCR on crops.....")
-    texts = batch_ocr(crnn_model, crops, batch_size=32)
+    texts = []
+    for crop in crops:
+        predicted_text = predict_single_word(crnn_model, crop)
+        texts.append(predicted_text)
+
+
+# Below code is used to reconstruct the words in the terminal and in the CSV files
 
     print("4. Reconstructing Table and saving to CSV...")
     
