@@ -26,9 +26,9 @@ class TableDetector:
 
         # Parse YOLO predictions
         for result in results:
-            if result.boxes is None:
+            if result.boxes is None: #type: ignore
                 continue
-            for box in result.boxes:
+            for box in result.boxes: #type: ignore
                 cls_id = int(box.cls[0])
                 class_name = self.class_names.get(cls_id, "")
                 x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())

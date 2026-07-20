@@ -3,6 +3,7 @@ import pandas as pd
 from inferencePipeline.tableDetector import TableDetector
 from inferencePipeline.wordDetector import load_crnn_model, batch_ocr, predict_single_word
 from inferencePipeline.cropImages import crop_and_save_cells
+from inferencePipeline.LM_Implementation import process_crnn_batch_with_bart
 
 def pipeline(image_path, yolo_weights, crnn_weights, output_csv):
     print("1. Loading Models...")
@@ -38,10 +39,14 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv):
     for crop in crops:
         predicted_text = predict_single_word(crnn_model, crop)
         texts.append(predicted_text)
+    
+    # Adding the BART pre-processing
+    if texts:
+        print(f"Running BART error correct on {len(texts)} detected words...")
+        texts = process_crnn_batch_with_bart(texts) or []
 
 
 # Below code is used to reconstruct the words in the terminal and in the CSV files
-
     print("4. Reconstructing Table and saving to CSV...")
     
     # Filter out spanning cells (which have None for row/col) to find grid dimensions
