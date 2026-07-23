@@ -5,7 +5,7 @@ This script is used to create a table of images words from IAM tables dataset
 import cv2
 import numpy as np
 
-# Word images (10 files)
+# Word images
 image_paths = [
     "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-00-00.png",
     "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-00-01.png",
@@ -21,19 +21,30 @@ image_paths = [
 
 rows = 5
 cols = 2
-padding = 8                    # inner margin around the word inside the cell
-line_thickness = 3
-row_bg_color = 230             # light gray for alternating rows
+# [FIX 1] Increased padding to give the YOLO model enough whitespace to differentiate text from borders
+inner_padding = 25         
+line_thickness = 3         # thickness of the table grid lines
+row_bg_color = 230         # light gray for alternating rows
+outer_margin = 50          # white margin around the whole table
 
-# Load all images
+# ---------- Load images (no extra border) ----------
 images = []
 for p in image_paths:
     img = cv2.imread(p, cv2.IMREAD_GRAYSCALE)
     if img is None:
-        raise FileNotFoundError(f"Image not found: {p}")
+        print(f"Warning: Image not found: {p}")
+        continue
+
+    # Only white inner padding – no black border around the word
+    img = cv2.copyMakeBorder(img, inner_padding, inner_padding,
+                             inner_padding, inner_padding,
+                             borderType=cv2.BORDER_CONSTANT, value=255)
     images.append(img)
 
-# Compute max width per column and max height per row
+if not images:
+    raise ValueError("No images were loaded. Check your file paths.")
+
+# ---------- Determine column/row sizes ----------
 col_widths = [0] * cols
 row_heights = [0] * rows
 for i, img in enumerate(images):
@@ -45,79 +56,81 @@ for i, img in enumerate(images):
     if h > row_heights[r]:
         row_heights[r] = h
 
-# Add padding to get the inner cell dimensions
-col_inner = [w + 2 * padding for w in col_widths]
-row_inner = [h + 2 * padding for h in row_heights]
+# Inner cell size = padded word size (no extra border)
+col_inner = [w for w in col_widths]
+row_inner = [h for h in row_heights]
 
-# Total cell dimensions (including the thickness of the grid lines)
-col_cell = [w + line_thickness for w in col_inner]   # cell width = inner + one line
-row_cell = [h + line_thickness for h in row_inner]   # cell height = inner + one line
+# Cell total size includes one grid line to the right / below
+col_cell = [w + line_thickness for w in col_inner]
+row_cell = [h + line_thickness for h in row_inner]
 
-# Table canvas size
-table_w = sum(col_cell) + line_thickness   # extra line at right border
-table_h = sum(row_cell) + line_thickness   # extra line at bottom border
-
-# Create a white canvas
+# ---------- Canvas ----------
+table_w = sum(col_cell) + line_thickness + 2 * outer_margin
+table_h = sum(row_cell) + line_thickness + 2 * outer_margin
 table_img = np.ones((table_h, table_w), dtype=np.uint8) * 255
 
-# Pre-compute starting x/y of each cell's inner area (top-left of inner region)
+# Top‑left of each cell’s inner area (after grid line)
 x_starts = []
-x = line_thickness
+x = outer_margin + line_thickness
 for cw in col_cell:
-    x_starts.append(x)             # line left of cell
+    x_starts.append(x)
     x += cw
-# y_starts similarly
+
 y_starts = []
-y = line_thickness
+y = outer_margin + line_thickness
 for rh in row_cell:
     y_starts.append(y)
     y += rh
 
-# Draw alternating row backgrounds (inside the inner areas, before drawing text)
+# ---------- 1. Alternating row background ----------
 for r in range(rows):
-    if r % 2 == 1:                 # shade every second row
+    if r % 2 == 1:
         y_top = y_starts[r]
         y_bottom = y_top + row_inner[r]
-        # For each column, fill the inner cell area
         for c in range(cols):
             x_left = x_starts[c]
             x_right = x_left + col_inner[c]
             table_img[y_top:y_bottom, x_left:x_right] = row_bg_color
 
-# Draw the grid lines (vertical and horizontal)
-# Vertical lines at every x_start and at the end of the table
-for c in range(cols + 1):
-    if c == 0:
-        x = 0
-    else:
-        x = x_starts[c-1] + col_inner[c-1] + line_thickness  # right after inner + line
-    cv2.line(table_img, (x, 0), (x, table_h), color=0, thickness=line_thickness)
-
-# Horizontal lines
-for r in range(rows + 1):
-    if r == 0:
-        y = 0
-    else:
-        y = y_starts[r-1] + row_inner[r-1] + line_thickness
-    cv2.line(table_img, (0, y), (table_w, y), color=0, thickness=line_thickness)
-
-# Place each word image centered inside its inner cell area
+# ---------- 2. Place the padded word images (centered) ----------
+# [FIX 2] Move this step BEFORE drawing grid lines, and use cv2.minimum to blend
 for i, img in enumerate(images):
     r = i // cols
     c = i % cols
-
-    # The word is placed as is – no resizing (if you want uniform size, you could scale)
     h, w = img.shape
 
-    # Center coordinates inside the inner cell
     x_offset = (col_inner[c] - w) // 2
     y_offset = (row_inner[r] - h) // 2
     x_pos = x_starts[c] + x_offset
     y_pos = y_starts[r] + y_offset
 
-    # Put the word image onto the canvas
-    table_img[y_pos:y_pos+h, x_pos:x_pos+w] = img
+    roi = table_img[y_pos:y_pos+h, x_pos:x_pos+w]
+    
+    # By using minimum, the white background (255) of the image yields to the 
+    # gray background (230) of the row, while the dark text pixels are preserved.
+    # This entirely eliminates the artificial "white box" effect.
+    table_img[y_pos:y_pos+h, x_pos:x_pos+w] = cv2.min(roi, img)
 
-# Save the result
-cv2.imwrite("synthetic_iam_table_tight_cells_3.jpg", table_img)
-print("Table with word‑tight cell borders created successfully!")
+# ---------- 3. Draw table grid lines (the actual cells) ----------
+# [FIX 3] Draw lines LAST so the white padding of the images doesn't overwrite them
+# Vertical lines
+for c in range(cols + 1):
+    if c == 0:
+        x = outer_margin
+    else:
+        x = x_starts[c-1] + col_inner[c-1] + line_thickness
+    cv2.line(table_img, (x, outer_margin), (x, table_h - outer_margin),
+             color=0, thickness=line_thickness)
+
+# Horizontal lines
+for r in range(rows + 1):
+    if r == 0:
+        y = outer_margin
+    else:
+        y = y_starts[r-1] + row_inner[r-1] + line_thickness
+    cv2.line(table_img, (outer_margin, y), (table_w - outer_margin, y),
+             color=0, thickness=line_thickness)
+
+# ---------- Save ----------
+cv2.imwrite("synthetic_iam_table_cells_only_fixed.jpg", table_img)
+print("Table with clean, continuous cells created!")

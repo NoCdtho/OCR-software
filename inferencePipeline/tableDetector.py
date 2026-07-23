@@ -37,9 +37,9 @@ class TableDetector:
                     rows.append((x1, y1, x2, y2))
                 elif class_name == "table column":
                     cols.append((x1, y1, x2, y2))
-                elif class_name == "table spanning cell":
-                    #  extract the spanning cells
-                    spanning_cells.append((x1, y1, x2, y2))
+                # elif class_name == "table spanning cell":
+                #     #  extract the spanning cells
+                #     spanning_cells.append((x1, y1, x2, y2))
 
         # Sort spatially
         rows.sort(key=lambda r: r[1])  # Top to bottom
@@ -85,8 +85,8 @@ class TableDetector:
         return cells, annotated_img
     
 if __name__ == "__main__":
-    WEIGHTS_PATH = "E:/PROJECTS/OCR/Server/TrainedModelsWeights/Yolomodel.pt"
-    IMAGE_PATH = "E:/PROJECTS/OCR/TestImage/TableImages/t9.webp"
+    WEIGHTS_PATH = "E:/PROJECTS/OCRSoftware/TrainedModelsWeights/yoloPubtables_1M.pt"
+    IMAGE_PATH = "E:/PROJECTS/OCRSoftware/Server/ImageCreation/synthetic_iam_table_cells_only_fixed.jpg"
     OUTPUT_PATH = "annoted_result.jpg"
 
     print("Loading models.....")

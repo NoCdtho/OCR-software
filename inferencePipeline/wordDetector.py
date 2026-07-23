@@ -152,8 +152,8 @@ def predict_single_word(model, crop_img: np.ndarray) -> str:
     img_tensor = new_Preprocess_image(crop_img) # Shape: (1, 32, Width)
 
     debug_img = F.to_pil_image(img_tensor)
-    debug_img.save("model_input_image.png")
-    print("Saved debug image check the image")
+    # debug_img.save("model_input_image.png")
+    # print("Saved debug image check the image")
     
     # 2. Add the Batch Dimension
     # PyTorch models ALWAYS expect 4 dimensions: (Batch, Channel, Height, Width)
