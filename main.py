@@ -3,8 +3,9 @@ import pandas as pd
 from inferencePipeline.tableDetector import TableDetector
 from inferencePipeline.wordDetector import load_crnn_model, batch_ocr, predict_single_word
 from inferencePipeline.cropImages import crop_and_save_cells
+from inferencePipeline.LM__Implementation import correct_ocr_text
 
-def pipeline(image_path, yolo_weights, crnn_weights, output_csv):
+def pipeline(image_path, yolo_weights, crnn_weights, output_csv, use_bart=False):
     print("1. Loading Models...")
     detector = TableDetector(yolo_weights)
     crnn_model = load_crnn_model(crnn_weights)
@@ -26,17 +27,21 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv):
         }]
 
 # Cropping the cells that are found
-
     print(f"3. Cropping {len(cells)} cells and running CRNN OCR...")
     saved_crops_data = crop_and_save_cells(img, cells, output_dir="extracted_table_cells")
 
     # Use the imported function to crop and save to a folder named extracted_table_cells
     crops = [item["image_matrix"] for item in saved_crops_data]
 
+# running the CRNN to detect the words
     print("Running the CRNN OCR on crops.....")
     texts = []
     for crop in crops:
         predicted_text = predict_single_word(crnn_model, crop)
+
+        if use_bart and predicted_text.strip():
+            predicted__text = correct_ocr_text(predicted_text)
+
         texts.append(predicted_text)
 
 # Below code is used to reconstruct the words in the terminal and in the CSV files
@@ -84,6 +89,7 @@ if __name__ == "__main__":
     parser.add_argument("--yolo", required=True, help="Path to YOLO weights (.pt)")
     parser.add_argument("--crnn", required=True, help="Path to CRNN weights (.pth)")
     parser.add_argument("--output", default="output_table.csv", help="Output CSV filename")
+    parser.add_argument("---use-bart", action="store_true", help="Enable BART for text correction")
     
     args = parser.parse_args()
-    pipeline(args.image, args.yolo, args.crnn, args.output)
+    pipeline(args.image, args.yolo, args.crnn, args.output, args.use_bart)
