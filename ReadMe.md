@@ -31,3 +31,6 @@ This project processes scanned documents through five distinct stages:
 * **Computer Vision:** `opencv-python` (cv2), `Pillow` (PIL)
 * **Data Structuring:** `pandas`, `numpy`
 
+### Working procedure
+1. we can create table of image using the ImageCreation/IAMtable.py file.
+2. Then we can execute the main.py file using the image generated and both the models. 
