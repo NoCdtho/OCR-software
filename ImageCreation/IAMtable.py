@@ -4,23 +4,29 @@ This script is used to create a table of images words from IAM tables dataset
 
 import cv2
 import numpy as np
+import os
+import glob
+import math
 
-# Word images
-image_paths = [
-    "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-00-00.png",
-    "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-00-01.png",
-    "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-00-02.png",
-    "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-00-03.png",
-    "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-00-04.png",
-    "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-00-05.png",
-    "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-00-06.png",
-    "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-01-00.png",
-    "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-01-01.png",
-    "E:/PROJECTS/OCRSoftware/TestImage/textImages/IAM images/table1/a01-000u-01-02.png",
-]
+# ---------- Folder containing the word images ----------
+# Just point this at the folder and every image inside it will be used
+image_folder ="E:/PROJECTS/APT_Summer_Project/TestImage/textImages/TextToTableImage(3)"
 
-rows = 5
+# Which extensions to pick up from the folder
+valid_exts = (".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff")
+
+image_paths = sorted(
+    p for p in glob.glob(os.path.join(image_folder, "*"))
+    if p.lower().endswith(valid_exts)
+)
+
+if not image_paths:
+    raise ValueError(f"No images found in folder: {image_folder}")
+
 cols = 2
+# rows are computed automatically from however many images were found in the folder
+rows = math.ceil(len(image_paths) / cols)
+
 # [FIX 1] Increased padding to give the YOLO model enough whitespace to differentiate text from borders
 inner_padding = 25         
 line_thickness = 3         # thickness of the table grid lines
@@ -42,7 +48,7 @@ for p in image_paths:
     images.append(img)
 
 if not images:
-    raise ValueError("No images were loaded. Check your file paths.")
+    raise ValueError("No images were loaded. Check your folder path.")
 
 # ---------- Determine column/row sizes ----------
 col_widths = [0] * cols
@@ -105,8 +111,8 @@ for i, img in enumerate(images):
     y_pos = y_starts[r] + y_offset
 
     roi = table_img[y_pos:y_pos+h, x_pos:x_pos+w]
-    
-    # By using minimum, the white background (255) of the image yields to the 
+
+    # By using minimum, the white background (255) of the image yields to the
     # gray background (230) of the row, while the dark text pixels are preserved.
     # This entirely eliminates the artificial "white box" effect.
     table_img[y_pos:y_pos+h, x_pos:x_pos+w] = cv2.min(roi, img)
@@ -133,4 +139,5 @@ for r in range(rows + 1):
 
 # ---------- Save ----------
 cv2.imwrite("synthetic_iam_table_cells_only_fixed.jpg", table_img)
-print("Table with clean, continuous cells created!")
+print(f"Table with clean, continuous cells created from {len(images)} images "
+      f"({rows} rows x {cols} cols)!")
