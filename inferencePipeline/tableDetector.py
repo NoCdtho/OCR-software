@@ -22,43 +22,27 @@ class TableDetector:
 
         # Run inference
         results = self.model(img, conf=conf, iou=iou)
-        rows, cols, spanning_cells = [], [], []
+        rows, cols = [], []
 
         # Parse YOLO predictions
         for result in results:
             if result.boxes is None: #type: ignore
                 continue
             for box in result.boxes: #type: ignore
-                cls_id = int(box.cls[0])
+                cls_id = int(box.cls) # box.cls is a class_ID tensor used to return the category prediction(what is this)
                 class_name = self.class_names.get(cls_id, "")
-                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist()) # xyxy returns the coordinates of the bounding box
                 
                 if class_name == "table row":
-                    rows.append((x1, y1, x2, y2))
+                    rows.append((x1, y1, x2, y2)) 
                 elif class_name == "table column":
                     cols.append((x1, y1, x2, y2))
-                # elif class_name == "table spanning cell":
-                #     #  extract the spanning cells
-                #     spanning_cells.append((x1, y1, x2, y2))
 
         # Sort spatially
         rows.sort(key=lambda r: r[1])  # Top to bottom
         cols.sort(key=lambda c: c[0])  # Left to right
 
         cells = []
-
-        # 1. Add spanning cells and draw them (Blue)
-        for sp_box in spanning_cells:
-            cells.append({
-                "row": None, # Spanning cells span multiple, so tracking needs custom logic
-                "col": None,
-                "box": sp_box,
-                "type": "spanning"
-            })
-            
-            # Draw blue bounding box for spanning cells: (B, G, R) -> (255, 0, 0)
-            sx1, sy1, sx2, sy2 = sp_box
-            cv2.rectangle(annotated_img, (sx1, sy1), (sx2, sy2), (255, 0, 0), 2)
 
         # 2. Calculate intersections for standard grid cells and draw them (Green)
         for r_idx, (rx1, ry1, rx2, ry2) in enumerate(rows):
@@ -68,7 +52,9 @@ class TableDetector:
                 iy1 = max(ry1, cy1)
                 ix2 = min(rx2, cx2)
                 iy2 = min(ry2, cy2)
-                
+
+                print(f"coordinates for the identified cell: {ix1}, {iy1}, {ix2} and {iy2}")
+
                 # If a valid intersection exists (width and height > 0)
                 if ix1 < ix2 and iy1 < iy2:
                     cells.append({
@@ -85,8 +71,8 @@ class TableDetector:
         return cells, annotated_img
     
 if __name__ == "__main__":
-    WEIGHTS_PATH = "E:/PROJECTS/OCRSoftware/TrainedModelsWeights/yoloPubtables_1M.pt"
-    IMAGE_PATH = "E:/PROJECTS/OCRSoftware/Server/ImageCreation/synthetic_iam_table_cells_only_fixed.jpg"
+    WEIGHTS_PATH = "E:/PROJECTS/APT_Summer_Project/TrainedModelsWeights/yoloPubtables_1M.pt"
+    IMAGE_PATH = "E:/PROJECTS/APT_Summer_Project/Pipeline/ImageCreation/synthetic_iam_table_cells_only_fixed.jpg"
     OUTPUT_PATH = "annoted_result.jpg"
 
     print("Loading models.....")
