@@ -1,6 +1,8 @@
 import cv2
 from ultralytics import YOLO
 
+"This will detect the cells and drawn the BB and return the cells annotations"
+
 class TableDetector:
     def __init__(self, weights_path):
         self.model = YOLO(weights_path)
