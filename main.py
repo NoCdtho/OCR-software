@@ -20,7 +20,7 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv, use_bart=False)
 
     # 1.5 Load, Deskew, and Save temporary image
     print("Fixing the image structure...")
-    raw_img = cv2.imread(image_path)
+    raw_img = cv2.imread(image_path) # This method load image in numpy array representing its pixel
     if raw_img is None:
         raise FileNotFoundError(f"Cannot load image at {image_path}")
         
@@ -45,7 +45,7 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv, use_bart=False)
 
 # Cropping the cells that are found
     print(f"3. Cropping {len(cells)} cells and running CRNN OCR...")
-    saved_crops_data = crop_and_save_cells(img, cells, output_dir="extracted_table_cells")
+    saved_crops_data = crop_and_save_cells(deskewed_img, cells, output_dir="extracted_table_cells")
 
     # Use the imported function to crop and save to a folder named extracted_table_cells
     crops = [item["image_matrix"] for item in saved_crops_data]
