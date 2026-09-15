@@ -30,6 +30,8 @@ def crop_and_save_cells(img, cells, output_dir="cropped_cells"):
         if crop.size == 0:
             continue
 
+        crop = remove_borders(crop)
+
         # 3. Generate a meaningful filename
         if cell.get("type") == "standard":
             # e.g., "cell_r0_c2.jpg" for Row 0, Column 2
@@ -52,6 +54,48 @@ def crop_and_save_cells(img, cells, output_dir="cropped_cells"):
         })
 
     return cropped_data
+
+def remove_borders(image):
+    """
+    Isolates text by finding stray borders touching the edges of the crop 
+    and painting them white, leaving central text untouched.
+    """
+    # 1. Convert to grayscale and binarize (text/lines become white, background black)
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    
+    # 2. Find contours of all the drawn elements
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    h, w = image.shape[:2]
+    cleaned_image = image.copy()
+    
+    # Define a 10% margin to check if an object touches the absolute edges
+    margin_x = max(5, int(w * 0.10))
+    margin_y = max(5, int(h * 0.10))
+    
+    for c in contours:
+        x, y, cw, ch = cv2.boundingRect(c)
+        
+        # Check if the object touches the outer margins of the crop
+        touches_left = x <= margin_x
+        touches_right = (x + cw) >= (w - margin_x)
+        touches_top = y <= margin_y
+        touches_bottom = (y + ch) >= (h - margin_y)
+        
+        # Condition 1: Vertical border (Touches left/right AND is relatively tall)
+        is_vertical_border = (touches_left or touches_right) and (ch > h * 0.5)
+        
+        # Condition 2: Horizontal border (Touches top/bottom AND is relatively wide)
+        is_horizontal_border = (touches_top or touches_bottom) and (cw > w * 0.5)
+        
+        if is_vertical_border or is_horizontal_border:
+            # Paint over the border with white
+            cv2.drawContours(cleaned_image, [c], -1, (255, 255, 255), thickness=cv2.FILLED)
+            # Add a slight extra thickness to catch grey anti-aliasing pixels on the edges
+            cv2.drawContours(cleaned_image, [c], -1, (255, 255, 255), thickness=4)
+            
+    return cleaned_image
 
 def main():
     # File paths
