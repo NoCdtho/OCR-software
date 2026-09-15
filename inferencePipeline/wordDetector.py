@@ -140,7 +140,6 @@ def batch_ocr(model, crops: list, batch_size=32):
             
     return all_texts
 
-
 def predict_single_word(model, crop_img: np.ndarray) -> str:
     """Runs OCR on a single numpy image crop without batch padding."""
     # Ensure model is in evaluation mode (CRITICAL for batch size 1)
@@ -182,8 +181,6 @@ def predict_single_word(model, crop_img: np.ndarray) -> str:
         prev = idx
         
     return ''.join(raw)
-
-
 
 if __name__ == "___main___":
 
@@ -230,3 +227,4 @@ if __name__ == "___main___":
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2, cv2.LINE_AA)
 
         return canvas, text
+
