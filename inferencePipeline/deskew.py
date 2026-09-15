@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+# Converts the raw image that is skewed makes it unskewed
+
 def deskew_image(image):
     # 1. Convert to grayscale and invert (background black, text white)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
