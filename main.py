@@ -20,7 +20,7 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv, use_bart=False)
 
     # 1.5 Load, Deskew, and Save temporary image
     print("Fixing the image structure...")
-    raw_img = cv2.imread(image_path) # This method load image in numpy array representing its pixel
+    raw_img = cv2.imread(image_path) # This method load image in numpy array representing its vla
     if raw_img is None:
         raise FileNotFoundError(f"Cannot load image at {image_path}")
         
@@ -189,3 +189,4 @@ if __name__ == "__main__":
         print(f"Average Pipeline WER: {avg_wer*100:.2f}%")
     
     print("=" * 50)
+    
