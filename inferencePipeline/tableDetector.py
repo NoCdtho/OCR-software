@@ -75,7 +75,7 @@ class TableDetector:
 if __name__ == "__main__":
     WEIGHTS_PATH = "E:/PROJECTS/APT_Summer_Project/TrainedModelsWeights/yoloPubtables_1M.pt"
     IMAGE_PATH = "E:/PROJECTS/APT_Summer_Project/Pipeline/ImageCreation/synthetic_iam_table_cells_only_fixed.jpg"
-    OUTPUT_PATH = "annoted_result.jpg"
+    OUTPUT_PATH = "E:/PROJECTS/APT_Summer_Project/result/annoted_result.jpg"
 
     print("Loading models.....")
     detector = TableDetector(weights_path=WEIGHTS_PATH)
