@@ -82,12 +82,12 @@ def remove_borders(image):
         touches_right = (x + cw) >= (w - margin_x)
         touches_top = y <= margin_y
         touches_bottom = (y + ch) >= (h - margin_y)
-        
+
         # Condition 1: Vertical border (Touches left/right AND is relatively tall)
-        is_vertical_border = (touches_left or touches_right) and (ch > h * 0.5)
+        is_vertical_border: bool = (touches_left or touches_right) and (ch > h * 0.5) 
         
         # Condition 2: Horizontal border (Touches top/bottom AND is relatively wide)
-        is_horizontal_border = (touches_top or touches_bottom) and (cw > w * 0.5)
+        is_horizontal_border: bool = (touches_top or touches_bottom) and (cw > w * 0.5)
         
         if is_vertical_border or is_horizontal_border:
             # Paint over the border with white
@@ -123,3 +123,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
