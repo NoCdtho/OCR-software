@@ -44,7 +44,7 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv, use_bart=False)
         }]
 
 # Cropping the cells that are found
-    print(f"3. Cropping {len(cells)} cells and running CRNN OCR...")
+    print(f"3. Cropping {len(cells)} cells ....")
     saved_crops_data = crop_and_save_cells(deskewed_img, cells, output_dir="extracted_table_cells")
 
     # Use the imported function to crop and save to a folder named extracted_table_cells
