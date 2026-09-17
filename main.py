@@ -13,7 +13,7 @@ import json
 import jiwer
 import img2text
 
-def pipeline(image_path, yolo_weights, crnn_weights, output_csv, use_bart=False):
+def pipeline(image_path, yolo_weights, crnn_weights, output_csv, ocr_type, use_bart=False):
     print("1. Loading Models...")
     detector = TableDetector(yolo_weights)
     print("YOLO model is initialized")
@@ -120,6 +120,7 @@ if __name__ == "__main__":
     parser.add_argument("--image_dir", required=True, help="Path to folder containing test images")
     parser.add_argument("--yolo", required=True, help="Path to YOLO weights (.pt)")
     parser.add_argument("--crnn", required=True, help="Path to CRNN weights (.pth)")
+    parser.add_argument("--ocr", choices=["paddle", "crnn"], default="paddle", help="Select OCR engine: paddle or crnn")
     parser.add_argument("--output", default="output_table.csv", help="Output CSV filename")
     parser.add_argument("--use-bart", action="store_true", help="Enable BART for text correction")
     parser.add_argument("--gt_json", help="Path to ground truth JSON file for CER/WER evaluation", default=None)
