@@ -2,7 +2,7 @@ import os
 import argparse
 import pandas as pd
 from inferencePipeline.tableDetector import TableDetector
-from inferencePipeline.wordDetector import load_crnn_model, batch_ocr, predict_single_word
+from inferencePipeline.wordDetector import load_crnn_model, predict_single_word
 from inferencePipeline.cropImages import crop_and_save_cells
 from inferencePipeline.LM_Implementation import correct_ocr_text
 from inferencePipeline.deskew import deskew_image
@@ -11,7 +11,6 @@ import cv2
 import time
 import json
 import jiwer
-import img2text
 
 def pipeline(image_path, yolo_weights, crnn_weights, output_csv, ocr_type, use_bart=False):
     print("1. Loading Models...")
@@ -22,6 +21,8 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv, ocr_type, use_b
     crnn_model = None
 
     if ocr_type == "crnn":
+        if crnn_weights is None:
+            raise ValueError("CRNN weights are required when using --ocr crnn")
         crnn_model = load_crnn_model(crnn_weights)
         print("CRNN model is initialized")
 
@@ -57,28 +58,31 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv, ocr_type, use_b
     # Use the imported function to crop and save to a folder named extracted_table_cells
     crops = [item["image_matrix"] for item in saved_crops_data]
 
-# running the CRNN to detect the words
-    print("Running the CRNN OCR on crops.....")
+# run either paddle or CRNN to detect the words
     texts = []
-
     folder = "E:/PROJECTS/APT_Summer_Project/Pipeline/extracted_table_cells"
-    for file in os.listdir(folder):
-        file_path = os.path.join(folder, file)
-        print(file_path)
-        predicted_word = image_to_word(file_path)
-        print("predicted_word= ", predicted_word)
-        texts.append(predicted_word)
-    # for crop in crops:
-    #     # predicted_text = predict_single_word(crnn_model, crop)
-    #     # predicted_text = img2text(crnn_model, crop)
-    #     predicted_text = image_to_word()
-    #     print("predicted_text=", predicted_text)
 
-    #     if use_bart and predicted_text.strip():
-    #         predicted_text = correct_ocr_text(predicted_text)
-    #         print("bart_predicted_text=", predicted_text)
+    if ocr_type == "paddle":
+        print("Detecting words using paddleOCR.....")
+        for file in os.listdir(folder):
+            file_path = os.path.join(folder, file)
+            print(file_path)
+            predicted_word = image_to_word(file_path)
+            print("predicted_word= ", predicted_word)
+            if use_bart and predicted_word.strip():
+                predicted_word = correct_ocr_text(predicted_word)
+                print("bart_predicted_text=", predicted_word)
+            texts.append(predicted_word)
 
-    #     texts.append(predicted_text)
+    elif ocr_type == "crnn":
+        print("Detecting words using my CRNN.....")
+        for crop in crops:
+            predicted_text = predict_single_word(crnn_model, crop)
+            print("predicted_text=", predicted_text)
+            if use_bart and predicted_text.strip():
+                predicted_text = correct_ocr_text(predicted_text)
+                print("bart_predicted_text=", predicted_text)
+            texts.append(predicted_text)
 
 # Below code is used to reconstruct the words in the terminal and in the CSV files
     print("4. Reconstructing Table and saving to CSV...")
@@ -113,9 +117,6 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv, ocr_type, use_b
     print(df.to_string()) # Print the dataframe to terminal
     print("="*50)
 
-    if spanning_texts:
-        print(f"\nNote: Found spanning cells with text: {spanning_texts}")
-
     df.to_csv(output_csv, index=False, header=False) # No headers, just raw data
     print(f"\n SUCCESS: Table saved to {output_csv}")
     return texts
@@ -124,7 +125,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="End-to-End Table OCR Pipeline")
     parser.add_argument("--image_dir", required=True, help="Path to folder containing test images")
     parser.add_argument("--yolo", required=True, help="Path to YOLO weights (.pt)")
-    parser.add_argument("--crnn", required=True, help="Path to CRNN weights (.pth)")
+    parser.add_argument("--crnn", required=False, help="Path to CRNN weights (.pth)")
     parser.add_argument("--ocr", choices=["paddle", "crnn"], default="paddle", help="Select OCR engine: paddle or crnn")
     parser.add_argument("--output", default="output_table.csv", help="Output CSV filename")
     parser.add_argument("--use-bart", action="store_true", help="Enable BART for text correction")
