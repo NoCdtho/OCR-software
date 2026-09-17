@@ -6,10 +6,12 @@ from inferencePipeline.wordDetector import load_crnn_model, batch_ocr, predict_s
 from inferencePipeline.cropImages import crop_and_save_cells
 from inferencePipeline.LM_Implementation import correct_ocr_text
 from inferencePipeline.deskew import deskew_image
+from inferencePipeline.paddleOCR import image_to_word
 import cv2
 import time
 import json
 import jiwer
+import img2text
 
 def pipeline(image_path, yolo_weights, crnn_weights, output_csv, use_bart=False):
     print("1. Loading Models...")
@@ -53,13 +55,25 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv, use_bart=False)
 # running the CRNN to detect the words
     print("Running the CRNN OCR on crops.....")
     texts = []
-    for crop in crops:
-        predicted_text = predict_single_word(crnn_model, crop)
 
-        if use_bart and predicted_text.strip():
-            predicted_text = correct_ocr_text(predicted_text)
+    folder = "E:\PROJECTS\APT_Summer_Project\Pipeline\extracted_table_cells"
+    for file in os.listdir(folder):
+        file_path = os.path.join(folder, file)
+        print(file_path)
+        predicted_word = image_to_word(file_path)
+        print("predicted_word= ", predicted_word)
+        texts.append(predicted_word)
+    # for crop in crops:
+    #     # predicted_text = predict_single_word(crnn_model, crop)
+    #     # predicted_text = img2text(crnn_model, crop)
+    #     predicted_text = image_to_word()
+    #     print("predicted_text=", predicted_text)
 
-        texts.append(predicted_text)
+    #     if use_bart and predicted_text.strip():
+    #         predicted_text = correct_ocr_text(predicted_text)
+    #         print("bart_predicted_text=", predicted_text)
+
+    #     texts.append(predicted_text)
 
 # Below code is used to reconstruct the words in the terminal and in the CSV files
     print("4. Reconstructing Table and saving to CSV...")
