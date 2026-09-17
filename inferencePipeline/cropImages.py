@@ -12,22 +12,25 @@ def crop_to_exact_word(cell_image, padding=8):
     Analyzes a cropped cell, ignores the outer border lines, 
     and returns a sub-crop tightly wrapped around the actual text.
     """
+    # converts the image to grayscale
     gray = cv2.cvtColor(cell_image, cv2.COLOR_BGR2GRAY)
     
     # Binarize: ink becomes white, background becomes black
     _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    
+
+    # draws a mathematical boundaries i.e. contours around every white shape it finds
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
     h, w = cell_image.shape[:2]
     valid_contours = []
     
     for c in contours:
+        # used to get the exact coordinate of the current shape
         x, y, cw, ch = cv2.boundingRect(c)
         
         # 1. Identify table lines: Shapes touching the edge AND spanning most of the cell
-        touches_edge = (x <= 5) or (y <= 5) or (x + cw >= w - 5) or (y + ch >= h - 5)
-        is_long_line = (cw > w * 0.75) or (ch > h * 0.75)
+        touches_edge: bool = (x <= 5) or (y <= 5) or (x + cw >= w - 5) or (y + ch >= h - 5)
+        is_long_line: bool = (cw > w * 0.75) or (ch > h * 0.75)
         
         if touches_edge and is_long_line:
             continue # Skip this border line
@@ -106,48 +109,6 @@ def crop_and_save_cells(img, cells, output_dir="cropped_cells"):
         })
 
     return cropped_data
-
-def remove_borders(image):
-    """
-    Isolates text by finding stray borders touching the edges of the crop 
-    and painting them white, leaving central text untouched.
-    """
-    # 1. Convert to grayscale and binarize (text/lines become white, background black)
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    
-    # 2. Find contours of all the drawn elements
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    
-    h, w = image.shape[:2]
-    cleaned_image = image.copy()
-    
-    # Define a 10% margin to check if an object touches the absolute edges
-    margin_x = max(5, int(w * 0.10))
-    margin_y = max(5, int(h * 0.10))
-    
-    for c in contours:
-        x, y, cw, ch = cv2.boundingRect(c)
-        
-        # Check if the object touches the outer margins of the crop
-        touches_left = x <= margin_x
-        touches_right = (x + cw) >= (w - margin_x)
-        touches_top = y <= margin_y
-        touches_bottom = (y + ch) >= (h - margin_y)
-        
-        # Condition 1: Vertical border (Touches left/right AND is relatively tall)
-        is_vertical_border: bool = (touches_left or touches_right) and (ch > h * 0.5) 
-        
-        # Condition 2: Horizontal border (Touches top/bottom AND is relatively wide)
-        is_horizontal_border = (touches_top or touches_bottom) and (cw > w * 0.5)
-        
-        if is_vertical_border or is_horizontal_border:
-            # Paint over the border with white
-            cv2.drawContours(cleaned_image, [c], -1, (255, 255, 255), thickness=cv2.FILLED)
-            # Add a slight extra thickness to catch grey anti-aliasing pixels on the edges
-            cv2.drawContours(cleaned_image, [c], -1, (255, 255, 255), thickness=4)
-            
-    return cleaned_image
 
 def main():
     # File paths
