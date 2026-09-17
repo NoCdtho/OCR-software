@@ -110,7 +110,7 @@ def crop_and_save_cells(img, cells, output_dir="cropped_cells"):
 
     return cropped_data
 
-def main():
+def test():
     # File paths
     WEIGHTS_PATH = "E:/PROJECTS/OCRSoftware/Server/TrainedModelsWeights/yoloPubtables_1M.pt"
     IMAGE_PATH = "E:/PROJECTS/OCRSoftware/TestImage/TableImages/t10.jpg"
@@ -135,5 +135,5 @@ def main():
     print(f"Success! Saved {len(saved_crops)} cropped images into the '{OUTPUT_FOLDER}' folder.")
 
 if __name__ == "__main__":
-    main()
+    test()
 
