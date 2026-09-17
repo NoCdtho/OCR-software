@@ -56,7 +56,7 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv, use_bart=False)
     print("Running the CRNN OCR on crops.....")
     texts = []
 
-    folder = "E:\PROJECTS\APT_Summer_Project\Pipeline\extracted_table_cells"
+    folder = "E:/PROJECTS/APT_Summer_Project/Pipeline/extracted_table_cells"
     for file in os.listdir(folder):
         file_path = os.path.join(folder, file)
         print(file_path)
