@@ -15,10 +15,15 @@ import img2text
 
 def pipeline(image_path, yolo_weights, crnn_weights, output_csv, ocr_type, use_bart=False):
     print("1. Loading Models...")
+
     detector = TableDetector(yolo_weights)
     print("YOLO model is initialized")
-    crnn_model = load_crnn_model(crnn_weights)
-    print("CRNN model is initialized")
+
+    crnn_model = None
+
+    if ocr_type == "crnn":
+        crnn_model = load_crnn_model(crnn_weights)
+        print("CRNN model is initialized")
 
     # 1.5 Load, Deskew, and Save temporary image
     print("Fixing the image structure...")
@@ -159,7 +164,7 @@ if __name__ == "__main__":
         start_time = time.time()
         
         # Run the pipeline and capture the output texts
-        predicted_words_list = pipeline(img_path, args.yolo, args.crnn, output_csv, args.use_bart)
+        predicted_words_list = pipeline(img_path, args.yolo, args.crnn, output_csv, args.ocr, args.use_bart)
         
         # Stop the timer!
         end_time = time.time()
