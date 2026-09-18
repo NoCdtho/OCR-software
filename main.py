@@ -121,6 +121,29 @@ def pipeline(image_path, yolo_weights, crnn_weights, output_csv, ocr_type, use_b
     print(f"\n SUCCESS: Table saved to {output_csv}")
     return texts
 
+def evaluate_prediction(ground_truth_list, predicted_list):
+
+    if ground_truths and img_name in ground_truths:
+        true_text = " ".join(ground_truth_list)
+        pred_text = " ".join([word for word in predicted_list if word.strip()])
+
+        cer = jiwer.cer(true_text, pred_text)
+        wer = jiwer.wer(true_text, pred_text)
+    
+        return cer, wer
+    
+    else:
+       cer = 0
+       wer = 0
+       return cer, wer
+
+def average(processing_times):
+    total_time = sum(processing_times)
+    average_time = total_time / len(processing_times)
+    print(f"Total time for {len(image_files)} documents: {total_time:.2f} seconds")
+    
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="End-to-End Table OCR Pipeline")
     parser.add_argument("--image_dir", required=True, help="Path to folder containing test images")
@@ -145,7 +168,12 @@ if __name__ == "__main__":
             exit()
     
     # Get all images in the directory
-    image_files = [f for f in os.listdir(args.image_dir) if f.endswith(('.png', '.jpg', '.jpeg'))]
+    image_files = []
+    for f in os.listdir(args.image_dir):
+        if f.endswith(('.png', '.jpg', '.jpeg')):
+            image_files.append(f)
+        else:
+            print("image type not supported")
     
     if not image_files:
         print("No images found in the specified directory.")
@@ -174,30 +202,21 @@ if __name__ == "__main__":
         elapsed_time = end_time - start_time
         processing_times.append(elapsed_time)
         print(f"Processed {img_name} in {elapsed_time:.2f} seconds")
-        
+
+        print()
+
+        print("Now evaluating the result......")
         # Calculate CER and WER if ground truth exists for this image
-        if ground_truths and img_name in ground_truths:
-            true_text = ground_truths[img_name]
-            # Join the predicted list of words into a single string for comparison
-            pred_text = " ".join([word for word in predicted_words_list if word.strip()])
-            
-            # Avoid jiwer crash on empty ground truth
-            if true_text.strip(): 
-                cer = jiwer.cer(true_text, pred_text)
-                wer = jiwer.wer(true_text, pred_text)
-                total_cer_list.append(cer)
-                total_wer_list.append(wer)
-                print(f"--> Evaluation for {img_name}: CER={cer*100:.2f}%, WER={wer*100:.2f}%\n")
-            else:
-                print(f"--> Skipped evaluation for {img_name}: Ground truth is empty.\n")
-        else:
-            print("\n")
+        cer, wer = evaluate_prediction(ground_truths[img_name], predicted_words_list)
+        total_cer_list.append(cer)
+        total_wer_list.append(wer)
+        print(f"--> Evaluation for {img_name}: CER={cer*100:.2f}%, WER={wer*100:.2f}%\n")
 
     # Calculate the averages
     total_time = sum(processing_times)
     average_time = total_time / len(processing_times)
     
-    print("=" * 50)
+    print()
     print(f"Total time for {len(image_files)} documents: {total_time:.2f} seconds")
     print(f"Average processing time per document: {average_time:.2f} seconds")
     
@@ -208,6 +227,4 @@ if __name__ == "__main__":
         print("-" * 50)
         print(f"Average Pipeline CER: {avg_cer*100:.2f}%")
         print(f"Average Pipeline WER: {avg_wer*100:.2f}%")
-    
-    print("=" * 50)
     
