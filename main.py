@@ -137,11 +137,17 @@ def evaluate_prediction(ground_truth_list, predicted_list):
        wer = 0
        return cer, wer
 
-def average(processing_times):
+def average(processing_times, image_files, total_cer_list, total_wer_list):
     total_time = sum(processing_times)
     average_time = total_time / len(processing_times)
     print(f"Total time for {len(image_files)} documents: {total_time:.2f} seconds")
-    
+    print(f"Average processing time per document: {average_time:.2f} seconds")
+    if total_cer_list and total_wer_list:
+        avg_cer = sum(total_cer_list) / len(total_cer_list)
+        avg_wer = sum(total_wer_list) / len(total_wer_list)
+        print("-" * 50)
+        print(f"Average Pipeline CER: {avg_cer*100:.2f}%")
+        print(f"Average Pipeline WER: {avg_wer*100:.2f}%")
 
 
 if __name__ == "__main__":
@@ -213,18 +219,6 @@ if __name__ == "__main__":
         print(f"--> Evaluation for {img_name}: CER={cer*100:.2f}%, WER={wer*100:.2f}%\n")
 
     # Calculate the averages
-    total_time = sum(processing_times)
-    average_time = total_time / len(processing_times)
-    
     print()
-    print(f"Total time for {len(image_files)} documents: {total_time:.2f} seconds")
-    print(f"Average processing time per document: {average_time:.2f} seconds")
-    
-    # Print average CER and WER if we evaluated any images
-    if total_cer_list and total_wer_list:
-        avg_cer = sum(total_cer_list) / len(total_cer_list)
-        avg_wer = sum(total_wer_list) / len(total_wer_list)
-        print("-" * 50)
-        print(f"Average Pipeline CER: {avg_cer*100:.2f}%")
-        print(f"Average Pipeline WER: {avg_wer*100:.2f}%")
+    average(processing_times, image_files, total_cer_list, total_wer_list)
     
