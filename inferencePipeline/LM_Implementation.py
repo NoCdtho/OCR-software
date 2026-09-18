@@ -28,7 +28,7 @@ def correct_ocr_text(raw_text, max_length=128):
         truncation=True
     ).to(device)
         
-        # 2. Generate the corrected text
+    # 2. Generate the corrected text
     with torch.no_grad():
         outputs = model.generate(
             **inputs,

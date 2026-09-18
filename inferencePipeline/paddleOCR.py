@@ -6,6 +6,7 @@ os.environ['PADDLE_PDX_ENABLE_MKLDNN_BYDEFAULT'] = '0'
 from paddleocr import PaddleOCR
 
 # Explicitly set enable_mkldnn=False to bypass the PIR layout bug
+
 ocr = PaddleOCR(
     lang="en",
     enable_mkldnn=False,
