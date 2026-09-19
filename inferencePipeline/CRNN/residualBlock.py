@@ -23,8 +23,3 @@ class ResidualBlock(nn.Module):
         out = self.bn2(self.conv2(out))
         out += self.shortcut(x)
         return self.relu(out)
-        # Add the skip connection before the final activation
-        out += identity
-        out = self.relu(out)
-
-        return out
