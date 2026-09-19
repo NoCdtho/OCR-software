@@ -71,18 +71,3 @@ class TableDetector:
 
         # Return the extracted cell data and the newly annotated image
         return cells, annotated_img
-    
-if __name__ == "__main__":
-    WEIGHTS_PATH = "E:/PROJECTS/APT_Summer_Project/TrainedModelsWeights/yoloPubtables_1M.pt"
-    IMAGE_PATH = "E:/PROJECTS/APT_Summer_Project/Pipeline/ImageCreation/synthetic_iam_table_cells_only_fixed.jpg"
-    OUTPUT_PATH = "E:/PROJECTS/APT_Summer_Project/result/annoted_result.jpg"
-
-    print("Loading models.....")
-    detector = TableDetector(weights_path=WEIGHTS_PATH)
-
-    print("Scanning image.....")
-    cells, annoted_img = detector.get_cells(image_path=IMAGE_PATH)
-
-    cv2.imwrite(OUTPUT_PATH, annoted_img)
-    print(f"Success found the number of cells are: {len(cells)}")
-    print(f"Saved the annotated image to: {OUTPUT_PATH}")

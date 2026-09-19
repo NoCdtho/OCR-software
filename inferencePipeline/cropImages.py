@@ -61,7 +61,7 @@ def crop_to_exact_word(cell_image, padding=8):
     # 5. Return the tightly cropped word
     return cell_image[min_y:max_y, min_x:max_x]
 
-def crop_and_save_cells(img, cells, output_dir="cropped_cells"):
+def crop_and_save_cells(img, cells, output_dir="cropped_cells") -> list:
 
     # Create the folder if it doesn't exist
     if not os.path.exists(output_dir):
@@ -86,21 +86,13 @@ def crop_and_save_cells(img, cells, output_dir="cropped_cells"):
             continue
 
         crop = crop_to_exact_word(crop)
-
-        # 3. Generate a meaningful filename
-        if cell.get("type") == "standard":
-            # e.g., "cell_r0_c2.jpg" for Row 0, Column 2
-            filename = f"cell_row{cell['row']}_column{cell['col']}.jpg"
-        else:
-            # For spanning cells where row/col isn't easily defined
-            filename = f"spanning_cell_{i}.jpg"
-            
+        filename = f"cell_row{cell['row']}_column{cell['col']}.jpg"
         save_path = os.path.join(output_dir, filename)
         
         # 4. Save the cropped image to disk
         cv2.imwrite(save_path, crop)
         
-        # Store in a list in case you want to pass them directly to your CRNN in memory
+        # Store in a list of dictionary in case you want to pass them directly to your CRNN in memory
         cropped_data.append({
             "filepath": save_path,
             "image_matrix": crop,
@@ -110,30 +102,5 @@ def crop_and_save_cells(img, cells, output_dir="cropped_cells"):
 
     return cropped_data
 
-def test():
-    # File paths
-    WEIGHTS_PATH = "E:/PROJECTS/OCRSoftware/Server/TrainedModelsWeights/yoloPubtables_1M.pt"
-    IMAGE_PATH = "E:/PROJECTS/OCRSoftware/TestImage/TableImages/t10.jpg"
-    OUTPUT_FOLDER = "extracted_table_cells"
 
-    # Initialize the detector
-    print("Loading YOLO model...")
-    detector = TableDetector(weights_path=WEIGHTS_PATH)
-
-    # Run inference to get the cells and the annotated image
-    print("Scanning image for cells...")
-    cells, annotated_img = detector.get_cells(image_path=IMAGE_PATH)
-
-    # We need to reload the pure, unannotated image for cropping 
-    # so we don't accidentally include the green/blue YOLO boxes in our crops!
-    original_img = cv2.imread(IMAGE_PATH)
-
-    # Crop and save
-    print(f"Cropping {len(cells)} cells...")
-    saved_crops = crop_and_save_cells(original_img, cells, output_dir=OUTPUT_FOLDER)
-    
-    print(f"Success! Saved {len(saved_crops)} cropped images into the '{OUTPUT_FOLDER}' folder.")
-
-if __name__ == "__main__":
-    test()
 

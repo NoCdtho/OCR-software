@@ -1,19 +1,10 @@
-import pytesseract
 from PIL import Image
 import torch
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM
 
-def extract_text_from_image(image_path):
-    """Extracts raw text from an image using Tesseract."""
-    image = Image.open(image_path)
-    raw_text = pytesseract.image_to_string(image)
-    return raw_text.strip()
-
 # Using a BART model fine-tuned for text/grammar correction
 MODEL_NAME = "pszemraj/bart-base-grammar-synthesis"
-
 device = "cuda" if torch.cuda.is_available() else "cpu"
-
 print(f"Loading model on {device}...")
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForSeq2SeqLM.from_pretrained(MODEL_NAME).to(device)
