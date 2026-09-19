@@ -14,7 +14,6 @@ import jiwer
 
 def reconstruct_table(cells, texts):
 
-    # Filter out spanning cells (which have None for row/col) to find grid dimensions
     grid_cells = [c for c in cells if c.get('row') is not None and c.get('col') is not None]
 
     if grid_cells:
@@ -26,23 +25,17 @@ def reconstruct_table(cells, texts):
 
     table_data = [['' for _ in range(max_col + 1)] for _ in range(max_row + 1)]
 
-    # Populate the 2D array with our extracted text
-    spanning_texts = []
     for cell, text in zip(cells, texts): #type: ignore
         r, c = cell.get('row'), cell.get('col')
         # If it's a standard grid cell
-        if r is not None and c is not None:
-            table_data[r][c] = text.strip()
-        # If it's a spanning cell
-        else:
-            spanning_texts.append(text.strip())
+        table_data[r][c] = text.strip()
 
     # Convert to Pandas DataFrame and Save
     df = pd.DataFrame(table_data)
 
-    print("\n" + "="*50)
+    print()
     print(df.to_string()) # Print the dataframe to terminal
-    print("="*50)
+    print()
 
 def pipeline(image_path, yolo_weights, crnn_weights, output_csv, ocr_type, use_bart=False):
     print("1. Loading Models...")
@@ -124,7 +117,12 @@ def evaluate_prediction(ground_truth_list, predicted_list):
 
     if ground_truths and img_name in ground_truths:
         true_text = " ".join(ground_truth_list)
+        print()
+        print("True text is ", true_text)
         pred_text = " ".join([word for word in predicted_list if word.strip()])
+        print()
+        print("Predicted text is ", pred_text)
+        print()
 
         cer = jiwer.cer(true_text, pred_text)
         wer = jiwer.wer(true_text, pred_text)
@@ -147,73 +145,73 @@ def average(processing_times, image_files, total_cer_list, total_wer_list):
         print()
         print(f"Average Pipeline CER and WER for all images are {avg_cer*100:.2f}% and {avg_wer*100:.2f}% respectively")
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="End-to-End Table OCR Pipeline")
-    parser.add_argument("--image_dir", required=True, help="Path to folder containing test images")
-    parser.add_argument("--yolo", required=True, help="Path to YOLO weights (.pt)")
-    parser.add_argument("--crnn", required=False, help="Path to CRNN weights (.pth)")
-    parser.add_argument("--ocr", choices=["paddle", "crnn"], default="paddle", help="Select OCR engine: paddle or crnn")
-    parser.add_argument("--output", default="output_table.csv", help="Output CSV filename")
-    parser.add_argument("--use-bart", action="store_true", help="Enable BART for text correction")
-    parser.add_argument("--gt_json", help="Path to ground truth JSON file for CER/WER evaluation", default=None)
+
+parser = argparse.ArgumentParser(description="End-to-End Table OCR Pipeline")
+parser.add_argument("--image_dir", required=True, help="Path to folder containing test images")
+parser.add_argument("--yolo", required=True, help="Path to YOLO weights (.pt)")
+parser.add_argument("--crnn", required=False, help="Path to CRNN weights (.pth)")
+parser.add_argument("--ocr", choices=["paddle", "crnn"], default="paddle", help="Select OCR engine: paddle or crnn")
+parser.add_argument("--output", default="output_table.csv", help="Output CSV filename")
+parser.add_argument("--use-bart", action="store_true", help="Enable BART for text correction")
+parser.add_argument("--gt_json", help="Path to ground truth JSON file for CER/WER evaluation", default=None)
     
-    args = parser.parse_args()
+args = parser.parse_args()
     
-    # Load Ground Truth if provided
-    ground_truths = {}
-    if args.gt_json:
-        try:
-            with open(args.gt_json, 'r') as f:
-                ground_truths = json.load(f)
-            print(f"Loaded ground truth for {len(ground_truths)} images.")
-        except Exception as e:
-            print(f"Failed to load ground truth JSON: {e}")
-            exit()
+# Load Ground Truth if provided
+ground_truths = {}
+if args.gt_json:
+    try:
+        with open(args.gt_json, 'r') as f:
+            ground_truths = json.load(f)
+        print(f"Loaded ground truth for {len(ground_truths)} images.")
+    except Exception as e:
+        print(f"Failed to load ground truth JSON: {e}")
+        exit()
+
+# Get all images in the directory
+image_files = []
+for f in os.listdir(args.image_dir):
+    if f.endswith(('.png', '.jpg', '.jpeg')):
+        image_files.append(f)
+    else:
+        print("image type not supported")
     
-    # Get all images in the directory
-    image_files = []
-    for f in os.listdir(args.image_dir):
-        if f.endswith(('.png', '.jpg', '.jpeg')):
-            image_files.append(f)
-        else:
-            print("image type not supported")
-    
-    if not image_files:
+if not image_files:
         print("No images found in the specified directory.")
         exit()
 
-    processing_times = []
-    total_cer_list = []
-    total_wer_list = []
+processing_times = []
+total_cer_list = []
+total_wer_list = []
 
-    print(f"Starting batch evaluation on {len(image_files)} images...")
+print(f"Starting batch evaluation on {len(image_files)} images...")
     
-    for img_name in image_files:
-        img_path = os.path.join(args.image_dir, img_name)
-        output_csv = f"output_{img_name}.csv"
+for img_name in image_files:
+    img_path = os.path.join(args.image_dir, img_name)
+    output_csv = f"output_{img_name}.csv"
         
         # Start the timer!
-        start_time = time.time()
+    start_time = time.time()
         
         # Run the pipeline and capture the output texts
-        predicted_words_list = pipeline(img_path, args.yolo, args.crnn, output_csv, args.ocr, args.use_bart)
+    predicted_words_list = pipeline(img_path, args.yolo, args.crnn, output_csv, args.ocr, args.use_bart)
         
         # Stop the timer!
-        end_time = time.time()
+    end_time = time.time()
         
         # Calculate elapsed time
-        elapsed_time = end_time - start_time
-        processing_times.append(elapsed_time)
-        print(f"Processed {img_name} in {elapsed_time:.2f} seconds")
+    elapsed_time = end_time - start_time
+    processing_times.append(elapsed_time)
+    print(f"Processed {img_name} in {elapsed_time:.2f} seconds")
 
-        print()
+    print()
 
-        print("Now calculating the error rate the result......")
-        # Calculate CER and WER if ground truth exists for this image
-        cer, wer = evaluate_prediction(ground_truths[img_name], predicted_words_list)
-        total_cer_list.append(cer)
-        total_wer_list.append(wer)
-        print(f"--> Evaluation for {img_name}: CER={cer*100:.2f}%, WER={wer*100:.2f}%\n")
+    print("Now calculating the error rate the result......")
+    # Calculate CER and WER if ground truth exists for this image
+    cer, wer = evaluate_prediction(ground_truths[img_name], predicted_words_list)
+    total_cer_list.append(cer)
+    total_wer_list.append(wer)
+    print(f"--> Evaluation for {img_name}: CER={cer*100:.2f}%, WER={wer*100:.2f}%\n")
 
     # Calculate the averages
     print()
